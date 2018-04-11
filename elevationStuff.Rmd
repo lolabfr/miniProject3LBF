@@ -1,0 +1,36 @@
+---
+title: "elevationStuff"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(sf)
+library(leaflet)
+```
+```{r}
+devtools::install_github("beanumber/macleish")
+library(macleish)
+packageVersion("macleish")
+```
+
+```{r}
+names(macleish_layers)
+```
+
+```{r}
+macleish_layers[["contours_3m"]] %>%
+  select(ELEV_FT) %>%
+  plot()
+```
+```{r}
+#elevation of all trails inside macleish? Hopefully??? 
+elevTrails <- macleish_layers[["contours_3m"]] %>%
+  select(ELEV_FT) %>%
+  st_intersection(macleish_layers[["trails"]])
+```
+```{r}
+#weird plot
+plot(elevTrails)
+```
+
