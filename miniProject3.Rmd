@@ -3,6 +3,7 @@ title: "miniProject3"
 output:
   html_document:
     code_folding: hide
+    css: style.css
 ---
 
 ```{r, message=FALSE, warning=FALSE}
@@ -14,7 +15,7 @@ library(viridis)
 library(RSQLite)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # getting all the data sets that we want to plot
 # adding trails inside the macleish boundary
 trails_inside <- macleish_layers[["trails"]] %>%
@@ -67,7 +68,7 @@ trail_pal <- colorFactor(
 
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # plotting on leaflet
 macleish_map <- leaflet(data = c(forest_inside, trails_inside)) %>%
   addTiles() %>%
@@ -93,12 +94,6 @@ macleish_map %>%
 
 ```
 
-<stlye>
-.Forest_legend {
-    background: #fff;
-    height: 10px;
-    width: 50%;
-}
-</style>
+
 
 
