@@ -1,6 +1,8 @@
 ---
 title: "miniProject3"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
 ---
 
 ```{r, message=FALSE, warning=FALSE}
@@ -8,29 +10,95 @@ library(macleish)
 library(tidyverse)
 library(leaflet)
 library(sf)
+library(viridis)
+library(RSQLite)
 ```
 
 ```{r}
+# getting all the data sets that we want to plot
 # adding trails inside the macleish boundary
 trails_inside <- macleish_layers[["trails"]] %>%
   st_intersection(macleish_layers[["boundary"]])
 
+# View(trails_inside)
+
+streams_inside <- macleish_layers[["streams"]] %>%
+  st_intersection(macleish_layers[["boundary"]])
+
+research_plots <- macleish_layers[["research"]]
+
+# View(research_plots)
+
+forest_inside <- macleish_layers[["forests"]] %>%
+  filter(!is.na(Sheet1__Na))
+
+pal <- colorFactor(
+  pal = "Paired",
+  domain = forest_inside$Veg_Type21
+)
+ # View(forest_inside)
+
+# plot(macleish_layers[["buildings"]])
+
+wetland_areas <- macleish_layers[["wetlands"]]
+
+reservoir_place <- macleish_layers[["reservoir"]] 
+
+# %>%
+#   st_intersection(macleish_layers[["boundary"]])
+
+# wetland_trail_intersect <- trails_inside %>%
+#   st_intersection(wetland_areas)
+# # 
+# View(wetland_trail_intersect)
+
 trails_inside_Points <- trails_inside %>%
   st_cast("LINESTRING")
 
-trail_length <- st_length(trails_inside_Points)
+trail_length <- st_length((trails_inside_Points))
 
+trail_pal <- colorFactor(
+  pal = "OrRd",
+  domain = trail_length
+)
 # trail_length <- distances(trails_inside)
 
-plot(macleish_layers[["trails"]])
+```
 
-macleish_map <- leaflet() %>%
+
+
+```{r}
+# plotting on leaflet
+macleish_map <- leaflet(data = c(forest_inside, trails_inside)) %>%
   addTiles() %>%
-  addPolygons(data = macleish_layers[["boundary"]], weight = 1)
+  addPolygons(data = macleish_layers[["boundary"]], weight = 1, color = "#F0EDED") 
 
 macleish_map %>%
-  addPolylines(data = trails_inside)
+  addPolylines(data = trails_inside, color = ~trail_pal(trail_length), weight = 3) %>%
+  addPolylines(data = streams_inside, weight = 1) %>%
+  addPolygons(data = forest_inside, color = ~pal(Sheet1__Na), weight = .5) %>%
+  addPolygons(data = wetland_areas, color = "Yellow", weight = .5) %>%
+  addPolygons(data = research_plots, color = "Grey", weight = .5) %>%
+  # addPolygons(data = reservoir_place, color = "Purple", weight = 1) %>%
+  addLegend( position = "bottomright",
+            pal = pal,
+            values = ~Sheet1__Na,
+            title = "Vegetation",
+            opacity = 1) %>%
+    addLegend( position = "bottomleft",
+            pal = trail_pal,
+            values = ~trail_length,
+            title = "Trail Length",
+            opacity = 1)
 
 ```
+
+<stlye>
+.Forest_legend {
+    background: #fff;
+    height: 10px;
+    width: 50%;
+}
+</style>
 
 
