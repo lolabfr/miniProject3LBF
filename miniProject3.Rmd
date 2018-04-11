@@ -41,17 +41,7 @@ pal <- colorFactor(
 
 # plot(macleish_layers[["buildings"]])
 
-wetland_areas <- macleish_layers[["wetlands"]]
-
-reservoir_place <- macleish_layers[["reservoir"]] 
-
-# %>%
-#   st_intersection(macleish_layers[["boundary"]])
-
-# wetland_trail_intersect <- trails_inside %>%
-#   st_intersection(wetland_areas)
-# # 
-# View(wetland_trail_intersect)
+wetland_areas <- macleish_layers[["wetlands"]] 
 
 trails_inside_Points <- trails_inside %>%
   st_cast("LINESTRING")
