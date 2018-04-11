@@ -28,9 +28,27 @@ macleish_layers[["contours_3m"]] %>%
 elevTrails <- macleish_layers[["contours_3m"]] %>%
   select(ELEV_FT) %>%
   st_intersection(macleish_layers[["trails"]])
+
+elevTrails %>%
+  st_intersection(macleish_layers[["boundary"]]) %>%
+  plot()
 ```
 ```{r}
 #weird plot
 plot(elevTrails)
+```
+
+
+```{r}
+require(leaflet)
+
+mapwelevationT <- leaflet() %>%
+  addTiles() %>%
+  addPolylines(data = macleish_layers[["trails"]], weight = 2, popup = ~name, color = "brown") %>%
+  addPolylines(data = macleish_layers[["boundary"]], weight = 3, color = "red") %>%
+  addPolylines(data = macleish_layers[["contours_3m"]], weight = 0.5)
+
+mapwelevationT
+  
 ```
 
