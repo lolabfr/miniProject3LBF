@@ -17,18 +17,14 @@ library(RSQLite)
 
 ```{r, message=FALSE, warning=FALSE}
 # getting all the data sets that we want to plot
-# adding trails inside the macleish boundary
+
 trails_inside <- macleish_layers[["trails"]] %>%
   st_intersection(macleish_layers[["boundary"]])
-
-# View(trails_inside)
 
 streams_inside <- macleish_layers[["streams"]] %>%
   st_intersection(macleish_layers[["boundary"]])
 
 research_plots <- macleish_layers[["research"]]
-
-# View(research_plots)
 
 forest_inside <- macleish_layers[["forests"]] %>%
   filter(!is.na(Sheet1__Na))
@@ -37,52 +33,135 @@ pal <- colorFactor(
   pal = "Paired",
   domain = forest_inside$Veg_Type21
 )
- # View(forest_inside)
-
-# plot(macleish_layers[["buildings"]])
 
 wetland_areas <- macleish_layers[["wetlands"]] 
 
 trails_inside_Points <- trails_inside %>%
   st_cast("LINESTRING")
+  # st_cast("MULTILINESTRING")
 
 trail_length <- st_length((trails_inside_Points))
+
+# View(trail_length)
 
 trail_pal <- colorFactor(
   pal = "OrRd",
   domain = trail_length
 )
-# trail_length <- distances(trails_inside)
+
+elevTrails <- macleish_layers[["contours_3m"]] %>%
+  select(ELEV_FT) %>%
+  st_intersection(macleish_layers[["trails"]]) %>%
+  st_intersection(macleish_layers[["boundary"]])
+```
+
+```{r}
+
+trails_inside <- trails_inside %>%
+  mutate(Shape_Leng = c(699.6, 969.2, 771.8, 360.5, 8.9, 193.8, 187.5, 200.4, 1108.5, 66.9, 71.9, 59, 1033.8, 498, 173.4))
+
+# View(trails_inside)
+
+
+# lengthOfTrails <- c(699.6, 969.2, 771.8, 360.5, 8.9, 193.8, 187.5, 200.4, 1108.5, 66.9, 71.9, 59, 1033.8, 498, 173.4)
+# 
+# newDf <- data.frame("Shape_Leng" = lengthOfTrails)
+# 
+# # merging newDf to trails inside
+# 
+# trails <- newDf %>%
+#   inner_join.sf(trails_inside, newDf, by = c("Shape_Leng" = "Shape_Leng"))
+
 
 ```
 
+
+
+```{r}
+
+trails_inside <- trails_inside %>%
+  mutate(Shape_Leng = c(699.6, 969.2, 771.8, 360.5, 8.9, 193.8, 187.5, 200.4, 1108.5, 66.9, 71.9, 59, 1033.8, 498, 173.4))
+
+# cbind.fill <- function(trail_length, trails_inside) { 
+#   nm <- list(trail_length, trails_inside) 
+#   nm<-lapply(nm, as.matrix) 
+#   n <- max(sapply(nm, nrow)) 
+#   as.data.frame(do.call(cbind, lapply(nm, function (x) 
+#     rbind(x, matrix(, n-nrow(x), ncol(x)))))) 
+#   } 
+# 
+# supertrails = cbind.fill(trail_length, trails_inside)
+
+supertrails_easy <- trails_inside %>% 
+  filter(Shape_Leng < 180)
+
+supertrails_moderate <- trails_inside %>% 
+  filter(Shape_Leng > 180 & Shape_Leng < 500)
+
+supertrails_difficulty <- trails_inside %>% 
+  filter(Shape_Leng > 500)
+
+# View(supertrails_easy)
+# View(supertrails_moderate)
+# View(supertrails_difficult)
+# View(trails_inside)
+```
 
 
 ```{r, message=FALSE, warning=FALSE}
+# labelFormat(){
+#   
+# }
+```
+
+
+
+
+```{r, message=FALSE, warning=FALSE, fig.width = 10, fig.height = 5}
 # plotting on leaflet
 macleish_map <- leaflet(data = c(forest_inside, trails_inside)) %>%
   addTiles() %>%
-  addPolygons(data = macleish_layers[["boundary"]], weight = 1, color = "#F0EDED") 
+  addPolygons(data = macleish_layers[["boundary"]], weight = 3, color = "#F0EDED", group = "Base") 
 
 macleish_map %>%
-  addPolylines(data = trails_inside, color = ~trail_pal(trail_length), weight = 3) %>%
-  addPolylines(data = streams_inside, weight = 1) %>%
-  addPolygons(data = forest_inside, color = ~pal(Sheet1__Na), weight = .5) %>%
-  addPolygons(data = wetland_areas, color = "Yellow", weight = .5) %>%
-  addPolygons(data = research_plots, color = "Grey", weight = .5) %>%
-  # addPolygons(data = reservoir_place, color = "Purple", weight = 1) %>%
-  addLegend( position = "bottomright",
+  # addPolylines(data = trails_inside, color = ~trail_pal(trail_length), weight = 3, group = "All Trails") %>%
+  addPolylines(data = streams_inside, weight = 1, group = "Base") %>%
+  addPolygons(data = forest_inside, color = ~pal(Sheet1__Na), weight = .5, group = "Vegetation") %>%
+  addPolygons(data = wetland_areas, color = "Blue", weight = .5, group = "Base") %>%
+  addPolygons(data = research_plots, color = "Orange", weight = .5, group = "Base") %>%
+  addPolylines(data = macleish_layers[["contours_3m"]], color = "grey", weight = 0.5, group = "Elevation") %>%
+  addPolylines(data = supertrails_easy, weight = 3, group = "Easy Trails", color = "Green") %>%
+  addPolylines(data = supertrails_moderate, weight = 3, group = "Moderate Trails", color = "Yellow") %>%
+  addPolylines(data = supertrails_difficulty, weight = 3, group = "Difficult Trails", color = "Red") %>%
+  addLegend( position = "bottomleft",
             pal = pal,
             values = ~Sheet1__Na,
             title = "Vegetation",
-            opacity = 1) %>%
-    addLegend( position = "bottomleft",
-            pal = trail_pal,
-            values = ~trail_length,
-            title = "Trail Length",
-            opacity = 1)
+            opacity = 1,
+            labFormat = labelFormat()) %>%
+    # addLegend( position = "bottomleft",
+    #         pal = trail_pal,
+    #         values = ~trail_length,
+    #         title = "Trail Length",
+    #         opacity = 1) %>%
+  addLayersControl(
+    baseGroups = c("Base"),
+    overlayGroups = c("Vegetation", "Elevation", "Easy Trails", "Moderate Trails", "Difficult Trails"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
 
 ```
+
+```{r}
+# mapwelevationT <- leaflet() %>%
+#   addTiles() %>%
+#   addPolylines(data = macleish_layers[["boundary"]], weight = 3, color = "red") %>%
+#   addPolylines(data = macleish_layers[["contours_3m"]], weight = 0.5, group = "Elevation")
+# 
+# mapwelevationT %>%
+#   addPolylines(data = macleish_layers[["trails"]], weight = 2, popup = ~name, color = "brown")
+```
+
 
 
 

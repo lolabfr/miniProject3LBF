@@ -9,7 +9,7 @@ library(sf)
 library(leaflet)
 ```
 ```{r}
-devtools::install_github("beanumber/macleish")
+# devtools::install_github("beanumber/macleish")
 library(macleish)
 packageVersion("macleish")
 ```
