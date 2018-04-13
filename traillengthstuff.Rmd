@@ -1,0 +1,55 @@
+---
+title: "TrailLength"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(macleish)
+library(tidyverse)
+library(leaflet)
+library(sf)
+library(viridis)
+library(RSQLite)
+```
+
+
+```{r}
+trails_inside <- macleish_layers[["trails"]] %>%
+  st_intersection(macleish_layers[["boundary"]])
+
+trails_inside_Points <- trails_inside %>%
+  st_cast("LINESTRING")
+
+#View(trails_inside_Points)
+
+trail_length <- st_length((trails_inside_Points))
+
+cbind.fill <- function(trail_length, trails_inside)
+{
+  nm <- list(trail_length, trails_inside) 
+  nm<-lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  as.data.frame(do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(, n-nrow(x), ncol(x))))))
+}
+
+supertrails = cbind.fill(trail_length, trails_inside)
+
+supertrails_easy <- supertrails %>%
+  filter(V1 < 180)
+
+supertrails_moderate <- supertrails %>%
+  filter(V1 > 180 & V1 < 500)
+
+supertrails_difficult <- supertrails %>%
+  filter(V1 > 500)
+
+View(supertrails_easy)
+View(supertrails_moderate)
+View(supertrails_difficult)
+```
+
