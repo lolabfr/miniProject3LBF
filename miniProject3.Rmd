@@ -1,10 +1,22 @@
 ---
-title: "miniProject3"
+title: "Plan and Hike"
+author: "Beth Campbell, Lola Roberts and Felicia Villalobos"
+date: "April 15, 2018"
 output:
   html_document:
     code_folding: hide
     css: style.css
 ---
+
+The Macleish Field Station offers four miles of trails for hiking and walking. The object of this project is to provide a classification of the difficulty of the trails. This classification is based on the elements of length, elevation and surrounding vegetation. The interactive map belows shows the different levels of trails bases on elevation and length, the different areas of vegetations and where the wetlands and research plots are. The interactive map has different layers on it so the user can choose what they want to see. For instance, there is a layer for the different types of vegetation, so people can see what type of plants they are going to walk through. The boundary of macleish, wetlands and research plots will always be shown on the map, so people know where they are. The different buildings at the station will always be on the map as a point of reference. The last thing on the map is a handmade legend displaying the different things on the map, this was made by using CSS. Is there a way to help visitors to Macleish better plan their experience and make it more accessible? 
+
+The classification of different trails is based on two things, the elevation and length. We thought that it would be nice for users to have a choice on whether they wanted a trail based on easy, moderate or hard based on length or elevation. Some people might want to have a difficult trail based on length and not care about the elevation, while others will care more about what the elevation is throughout the trail than the overall length.
+
+When plotting the elevation trails, we wanted to make the lines dotted so the user knows which trails they are looking at. When the user is looking at a green trail with a straight line then they are looking at the classification of the trail based on length. The user can also gauge the elevation of the trail they want to visit by using the contour lines in the elevation layer. The elevation legend describes how the colors of the lines correlate to a steeper or lower elevation. The use of this layer along with the trail classification layer can give the user a better idea as to how long they will be hiking and at what level of elevation.  
+
+This data could help Smith make Macleish more accessible to more visitors. Giving guests a better idea of elements that they will encounter on their hike like elevation and surrounding vegetation may make it easier for a group to pick a trail that is better for the levels of ability within their group. An environmental aspect that would impact this visualization is weather. Rain could make the wetlands flood, and trails could become icy during the winter. Some roadblocks that could affect this tool are the ever changing conditions of nature within Macleish, for example a fallen tree could make a trail that the  map classifies as “easy” and at a low elevation harder to cross for some visitors. 
+
+
 
 ```{r, message=FALSE, warning=FALSE}
 library(macleish)
@@ -13,6 +25,7 @@ library(leaflet)
 library(sf)
 library(viridis)
 library(RSQLite)
+library(magrittr)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -25,6 +38,9 @@ streams_inside <- macleish_layers[["streams"]] %>%
   st_intersection(macleish_layers[["boundary"]])
 
 research_plots <- macleish_layers[["research"]]
+
+building_plots <- macleish_layers[["buildings"]] %>%
+  st_intersection(macleish_layers[["boundary"]])
 
 forest_inside <- macleish_layers[["forests"]] %>%
   filter(!is.na(Sheet1__Na))
@@ -48,6 +64,9 @@ trail_pal <- colorFactor(
   pal = "OrRd",
   domain = trail_length
 )
+
+contour_pals <- colorNumeric(palette = "magma", domain = macleish_layers[["contours_3m"]]$ELEV_FT)
+
 
 elevTrails <- macleish_layers[["contours_3m"]] %>%
   select(ELEV_FT) %>%
@@ -115,7 +134,70 @@ supertrails_difficulty <- trails_inside %>%
 ```
 
 
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+elevTrails <- macleish_layers[["contours_3m"]] %>%
+  select(ELEV_FT) %>%
+  arrange(ELEV_FT) %>%
+  st_intersection(macleish_layers[["trails"]])
 
+#elevBoundTrails <- elevTrails %>%
+ # st_intersection(macleish_layers[["boundary"]])
+
+elevTrails %>%
+  st_intersection(macleish_layers[["boundary"]]) 
+
+#elevTrails object has intersections of contour, trails, 
+```
+
+```{r, message=FALSE, warning=FALSE}
+elevationallTrails <- elevTrails %>%
+  group_by(name) %>%
+  summarize(elevation = (max(ELEV_FT)- min(ELEV_FT))) %>%
+  mutate(difficulty = name)
+
+#classifying trails by difficulty 
+easyTrails <- elevationallTrails %>%
+  filter(elevation < 150)
+
+hardTrails <- elevationallTrails %>%
+  filter(elevation > 150)
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+#easy  trails separated manually 
+
+eLoop <- elevationallTrails %>%
+  filter(name == "Eastern Loop") 
+
+eOut <- easyTrails %>%
+  filter(name == "Easy Out")
+
+eTrail <- easyTrails %>%
+  filter(name == "entry trail")
+
+#medium trail separated manually 
+porcT <- elevationallTrails %>%
+  filter(name == "Porcupine Trail") 
+verT<- easyTrails %>%
+  filter(name == "Vernal Pool Loop")
+
+#hard trails separated manually 
+popT <- elevationallTrails %>%
+  filter(name == "Poplar Hill Road") 
+westT<- elevationallTrails %>%
+  filter(name == "West Trail")
+```
+
+```{r}
+#function to plot every marker
+#plotMarkers <- function(map, data_trails) {
+ #  map %>%
+  #  addCircleMarkers(data = st_cast(data_trails, "POINT"),
+   #                  radius = 2, 
+    #                 color = "Red", 
+     #                stroke = FALSE, fillOpacity = 0.5)
+```
 
 ```{r, message=FALSE, warning=FALSE, fig.width = 10, fig.height = 5}
 # plotting on leaflet
@@ -133,6 +215,42 @@ macleish_map %>%
   addPolylines(data = supertrails_easy, weight = 3, group = "Easy Trails", color = "Green") %>%
   addPolylines(data = supertrails_moderate, weight = 3, group = "Moderate Trails", color = "Yellow") %>%
   addPolylines(data = supertrails_difficulty, weight = 3, group = "Difficult Trails", color = "Red") %>%
+  addPolygons(dat = building_plots, weight = 2, group = "base", color = "Grey") %>%
+  addPolylines(data = macleish_layers[["contours_3m"]], 
+               color = ~contour_pals(ELEV_FT), weight = 1, group = "Elevation") %>%
+  
+   # addCircleMarkers(data = st_cast(eLoop, "POINT"), 
+  #                 radius = 2, 
+   #               color = "red",
+    #              stroke = FALSE, fillOpacity = 0.5) %>%
+  
+  #  addCircleMarkers(data = st_cast(eOut, "POINT"), 
+ #                  radius = 2, 
+  #                 color = "blue", 
+   #                stroke = FALSE, fillOpacity = 0.5) %>%
+  
+  #addCircleMarkers(data = st_cast(eTrail, "POINT"), 
+ #                  radius = 2, 
+  #                 color = "green", 
+   #                stroke = TRUE, fillOpacity = 0.5) %>%
+  #addCircleMarkers(data = st_cast(porcT, "POINT"), 
+   #                radius = 2, 
+    #               color = "green", 
+     #              stroke = TRUE, fillOpacity = 0.5) %>%
+
+ # addCircleMarkers(data = st_cast(verT, "POINT"), 
+  #                 radius = 2, 
+   #                color = "green", 
+    #               stroke = TRUE, fillOpacity = 0.5) %>%
+  #addCircleMarkers(data = st_cast(popT, "POINT"), 
+   #                radius = 2, 
+    #               color = "green", 
+     #              stroke = TRUE, fillOpacity = 0.5) %>%
+  #addCircleMarkers(data = st_cast(westT, "POINT"), 
+   #                radius = 2, 
+    #               color = "green", 
+     #              stroke = TRUE, fillOpacity = 0.5) %>%
+
   addLegend( position = "bottomleft",
             pal = pal,
             values = ~Sheet1__Na,
@@ -144,6 +262,12 @@ macleish_map %>%
     #         values = ~trail_length,
     #         title = "Trail Length",
     #         opacity = 1) %>%
+  addLegend( position = "bottomright", 
+              pal = contour_pals, 
+              values = macleish_layers[["contours_3m"]]$ELEV_FT, 
+              title = "Elevation (ft)", 
+              opacity = 1) %>%
+
   addLayersControl(
     baseGroups = c("Base"),
     overlayGroups = c("Vegetation", "Elevation", "Easy Trails", "Moderate Trails", "Difficult Trails"),
@@ -161,7 +285,11 @@ macleish_map %>%
 # mapwelevationT %>%
 #   addPolylines(data = macleish_layers[["trails"]], weight = 2, popup = ~name, color = "brown")
 ```
+When starting this project, were were just going to plot the trails and classify them based on the change in elevation throughout the entire trial, however, after talking to Reid we realized that we wanted to track the elevation throughout the entire trail, so people knew where the steep parts of the trial will be. We do have elevation as a layer in the map, that people can see when looking at the map. 
 
+This would be useful to people interested in hiking at Macleish. It would give then a chance to see the different options beforehand so when they get to Macleish they could just start hiking. This map would give users an idea about the different elevations and lengths of trails. It will also give the hikers some information about what types of vegetation they will see. For instance, if people want to see Sugar Maple Forest, they can know the trail that will lead then straight to the Sugar Maple Forest. The different layers of the map will also help them because it will allow the user to control what they want to see while they are looking for trails.
+
+^[https://github.com/lolabfr/miniProject3LBF.git]
 
 
 
